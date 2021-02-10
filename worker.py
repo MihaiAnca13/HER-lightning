@@ -143,21 +143,17 @@ class Worker:
             goal_reached = (True if info['is_success'] else False) or goal_reached
 
             if not target_reached:
-                # if is_subgoal_test:
-                #     exp = Experience(state=high_obs['observation'], action=norm_target_np.copy(), next_state=new_obs['observation'],
-                #                      reward=-1, done=False, goal=high_obs['desired_goal'])
-                #     self.replay_buffers[1].append(exp)
-
-                exp = Experience(state=high_obs['observation'], action=norm_target_np.copy(), next_state=new_obs['observation'],
-                                 reward=reward, gamma=np.power(self.params.gamma, low_steps), goal=high_obs['desired_goal'])
-                self.replay_buffers[1].append(exp)
+                if is_subgoal_test:
+                    exp = Experience(state=high_obs['observation'], action=norm_target_np.copy(), next_state=new_obs['observation'],
+                                     reward=-1, gamma=np.power(self.params.gamma, low_steps), goal=high_obs['desired_goal'])
+                    self.replay_buffers[1].append(exp)
 
                 low_achieved_goal = torch.from_numpy(new_low_obs['achieved_goal']).float().unsqueeze(0).to(device)
                 high_action = self.low_state_normalizer.normalize(low_achieved_goal)[0].detach().cpu().numpy()
             else:
                 high_action = norm_target_np.copy()
 
-            episode_high_transitions.append((high_obs, high_action, reward, new_obs, np.power(self.params.gamma, low_steps)))
+            episode_high_transitions.append((high_obs, high_action, reward, new_obs, low_steps))
 
             if done:
                 accuracy[1].append(1 if goal_reached else 0)
@@ -193,9 +189,9 @@ class Worker:
     def create_her_transition(self, episode_transitions, level):
         episode_obs = np.array(episode_transitions)
         transitions = []
-        for idx, (obs, action, reward, new_obs, gamma) in enumerate(episode_obs):
+        for idx, (obs, action, reward, new_obs, steps) in enumerate(episode_obs):
             exp = Experience(state=obs['observation'], action=action, next_state=new_obs['observation'], reward=reward,
-                             gamma=gamma, goal=obs['desired_goal'])
+                             gamma=np.power(self.params.gamma, steps), goal=obs['desired_goal'])
             self.replay_buffers[level].append(exp)
 
             if self.params.replay_strategy == 'final':
@@ -210,7 +206,7 @@ class Worker:
                     new_gamma = self.params.gamma
                 else:
                     info = None
-                    new_gamma = np.power(self.params.gamma, self.params.H)
+                    new_gamma = np.power(self.params.gamma, min(self.params.H, np.sum(episode_obs[idx:-1, 4])))
 
                 # check for rewarding random movements when the object hasn't moved
                 # if high level is on goal, the reward would come from the env
@@ -232,7 +228,7 @@ class Worker:
                     future_idx = future_offset + idx + 1
                     future_idx = future_idx.astype(int)
 
-                    for future_o in episode_obs[future_idx][:, 0]:
+                    for i, future_o in enumerate(episode_obs[future_idx][:, 0]):
                         if level == 0:
                             if future_o['achieved_goal'][-1] < 0.04 and obs['is_grasping']:
                                 info = {'thresholds': np.array([0.01, 0.01, 0.01, 1])}
@@ -242,7 +238,7 @@ class Worker:
                             new_gamma = self.params.gamma
                         else:
                             info = None
-                            new_gamma = np.power(self.params.gamma, self.params.H)
+                            new_gamma = np.power(self.params.gamma, min(self.params.H, np.sum(episode_obs[idx:future_idx[i], 4])))
 
                         # check for rewarding random movements when the object hasn't moved
                         # if high level is on goal, the reward would come from the env

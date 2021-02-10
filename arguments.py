@@ -9,7 +9,7 @@ def get_args():
     parser.add_argument('--project', type=str, default="her-pl", help='the project name')
     parser.add_argument('--gpus', type=int, default=1, help='the number of gpus to train on')
     parser.add_argument('--H', type=int, default=10, help='the number of low level steps per high level target')
-    parser.add_argument('--max-epochs', type=int, default=250, help='the number of epochs to train the agent')
+    parser.add_argument('--max-epochs', type=int, default=35, help='the number of epochs to train the agent')
     parser.add_argument('--n-batches', type=int, default=2000, help='the times to update the network per epoch')
     parser.add_argument('--seed', type=int, default=100, help='random seed')
     parser.add_argument('--max-timesteps', type=int, default=50, help='max number of steps per episode')
@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument('--clip-range', type=float, default=5, help='the clip range for the normalizer')
     parser.add_argument('--policy-freq', type=float, default=4, help='the freq at which to update the actor compared to critic')
     parser.add_argument('--action-l2-low', type=float, default=0.4, help='tanh saturation loss for low level')
-    parser.add_argument('--action-l2-high', type=float, default=0.4, help='tanh saturation loss for high level')
+    parser.add_argument('--action-l2-high', type=float, default=0.04, help='tanh saturation loss for high level')
     parser.add_argument('--render-test', type=bool, default=True, help='whether the test should be rendered or not')
 
     parser.add_argument('--num-sanity-val-steps', type=int, default=0, help='initial tests')
