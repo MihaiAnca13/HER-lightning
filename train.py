@@ -141,7 +141,8 @@ class HER(pl.LightningModule):
         for k, v in batch.items():
             to_log[k] = v.detach().cpu().numpy()
         to_log['epoch_nr'] = int(self.current_epoch)
-        self.logger.experiment.log(to_log)
+        if self.logger is not None:
+            self.logger.experiment.log(to_log)
 
 
 if __name__ == '__main__':
