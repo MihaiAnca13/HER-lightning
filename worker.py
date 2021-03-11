@@ -93,7 +93,7 @@ class Worker:
             obs = new_obs
 
     def create_her_transition(self, episode_transitions):
-        episode_obs = np.array(episode_transitions)
+        episode_obs = np.array(episode_transitions, dtype=object)
         for idx, (obs, action, reward, new_obs, done) in enumerate(episode_obs):
             exp = Experience(state=obs['observation'], action=action, next_state=new_obs['observation'], reward=reward,
                              done=done, goal=obs['desired_goal'])
