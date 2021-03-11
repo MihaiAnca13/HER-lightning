@@ -83,7 +83,8 @@ class Worker:
             norm_state = self.state_normalizer.normalize(state)
 
             with torch.no_grad():
-                action = self.model.agent(norm_state, norm_goal)[0]
+                action, _, _ = self.model.actor(norm_state, norm_goal)
+                action = action.detach().cpu().numpy()[0]
 
             new_obs, reward, done, _ = self.env.step(action)
             episode_reward += reward

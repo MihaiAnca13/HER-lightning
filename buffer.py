@@ -80,6 +80,7 @@ class RLDataset(IterableDataset):
         for i in range(self.n_batches):
             yield self.buffer.sample(self.batch_size)
 
+
 class TestDataset(IterableDataset):
     def __init__(self, hparams, test_env, model, state_normalizer, goal_normalizer):
         self.hparams = hparams
@@ -104,7 +105,8 @@ class TestDataset(IterableDataset):
                 norm_state = self.state_normalizer.normalize(state)
                 norm_goal = self.goal_normalizer.normalize(goal)
 
-                action = self.model.agent.test(norm_state, norm_goal)[0]
+                _, _, action = self.model.actor(norm_state, norm_goal)
+                action = action.detach().cpu().numpy()[0]
 
                 new_obs, reward, done, info = self.test_env.step(action)
 
