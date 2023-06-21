@@ -9,7 +9,7 @@ def get_args():
     parser.add_argument('--project', type=str, default="her-pl", help='the project name')
     parser.add_argument('--gpus', type=int, default=1, help='the number of gpus to train on')
     parser.add_argument('--H', type=int, default=10, help='the number of low level steps per high level target')
-    parser.add_argument('--max-epochs', type=int, default=1000, help='the number of epochs to train the agent')
+    parser.add_argument('--max-epochs', type=int, default=25, help='the number of epochs to train the agent')
     parser.add_argument('--n-batches', type=int, default=2000, help='the times to update the network per epoch')
     parser.add_argument('--sync-batches', type=int, default=40, help='freq (batches) at which to update the target networks')
     parser.add_argument('--seed', type=int, default=123, help='random seed')
@@ -29,10 +29,10 @@ def get_args():
     parser.add_argument('--lr-actor', type=float, default=0.001, help='the learning rate of the actor')
     parser.add_argument('--lr-critic', type=float, default=0.001, help='the learning rate of the critic')
     parser.add_argument('--polyak', type=float, default=0.95, help='the average coefficient')
-    parser.add_argument('--n-test-rollouts', type=int, default=1, help='the number of tests')
-    parser.add_argument('--val-check-interval', type=int, default=2000, help='frequency of tests (batches)')
+    parser.add_argument('--n-test-rollouts', type=int, default=10, help='the number of tests')
+    parser.add_argument('--val-check-interval', type=int, default=1000, help='frequency of tests (batches)')
     parser.add_argument('--clip-range', type=float, default=5, help='the clip range')
-    parser.add_argument('--render-test', type=bool, default=True, help='whether the test should be rendered or not')
+    parser.add_argument('--render-test', type=bool, default=False, help='whether the test should be rendered or not')
 
     parser.add_argument('--num-sanity-val-steps', type=int, default=0, help='initial tests')
 
