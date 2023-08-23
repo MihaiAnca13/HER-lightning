@@ -36,6 +36,7 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
+    """ double Q network """
     def __init__(self, obs_size, goal_size, act_size, H):
         super(Critic, self).__init__()
 
@@ -74,7 +75,8 @@ class Critic(nn.Module):
         return self.q1(torch.cat([state, goal, action], dim=1))
 
 
-class Agent():
+class Agent:
+    """ Handles action calls and noise """
     def __init__(self, net, action_clips, expl_noise, policy_noise, noise_clip, random_eps):
         self.net = net
         self.expl_noise = expl_noise
@@ -84,20 +86,23 @@ class Agent():
         self.action_clips = action_clips
         self.random_eps = random_eps
 
-
     def __call__(self, states, goals):
         mu_v = self.net(states, goals)
         actions = mu_v.data.detach().cpu().numpy()
 
+        # completely randomise the values based on probability
         for i in range(len(actions)):
             if np.random.random() < self.random_eps:
                 actions[i] = np.random.uniform(self.action_clips[0], self.action_clips[1])
 
+        # add extra noise
         actions += np.random.normal(0, self.max_action * self.expl_noise, size=actions.shape)
+        # keep action within boundary
         actions = np.clip(actions, self.action_clips[0], self.action_clips[1])
         return actions
 
     def add_train_noise(self, actions):
+        """ adds noise to a whole batch of actions. specifically used in TD3 training """
         l = torch.FloatTensor(-self.noise_clip).to(actions.device)
         u = torch.FloatTensor(self.noise_clip).to(actions.device)
         policy_noise = torch.FloatTensor(self.policy_noise).to(actions.device)
@@ -107,6 +112,7 @@ class Agent():
         return torch.max(torch.min(actions + noise, u), l)
 
     def test(self, states, goals):
+        """ return action without noise """
         mu_v = self.net(states, goals)
         actions = mu_v.data.detach().cpu().numpy()
         actions = np.clip(actions, self.action_clips[0], self.action_clips[1])

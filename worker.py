@@ -26,6 +26,7 @@ def spawn_processes(params, high_replay_buffer, low_replay_buffer, high_model, l
 
 def process_func(proc_idx, params, high_replay_buffer, low_replay_buffer, high_model, low_model, high_state_normalizer,
                  low_state_normalizer, env_goal_normalizer, log_result, active):
+    """ initialises a worker in charge of an environment """
     env = make_env(params, proc_idx)
     w = Worker(proc_idx, params, env, high_replay_buffer, low_replay_buffer, high_model, low_model,
                high_state_normalizer, low_state_normalizer, env_goal_normalizer, log_result, active)
@@ -52,6 +53,7 @@ class Worker:
     def loop(self):
         assert self.params.H > 0
 
+        # preparing variables
         device = next(self.high_model.actor.parameters()).device
         obs = self.env.reset()
         env_goal = torch.from_numpy(obs['desired_goal']).float().unsqueeze(0).to(device)
@@ -69,10 +71,13 @@ class Worker:
 
         accuracy = [[], []]
         goal_reached = False
+        done = False
+        info = {}
 
         while self.active:
             new_env_goals[idx // self.params.H] = obs['achieved_goal']
 
+            # high level
             high_obs = obs.copy()
             high_state = torch.from_numpy(obs['observation']).float().unsqueeze(0).to(device)
             norm_high_state = self.high_state_normalizer.normalize(high_state)
@@ -86,6 +91,7 @@ class Worker:
             if np.random.uniform() < self.params.subgoal_testing:
                 is_subgoal_test = True
 
+            # low level
             target_reached = False
             for i in range(self.params.H):
                 low_state = torch.from_numpy(obs['observation'][LOW_STATE_IDX]).float().unsqueeze(0).to(device)
@@ -134,7 +140,7 @@ class Worker:
                 #     episode_low_transitions.append((low_obs, action, 0, new_low_obs, False))
                 #     break
 
-                if done or info['is_success']: # or target_reached:
+                if done or info['is_success']:  # or target_reached:
                     break
 
             accuracy[0].append(1 if target_reached else 0)
@@ -154,13 +160,16 @@ class Worker:
             episode_high_transitions.append((high_obs, high_action, reward, new_obs, False))
 
             if done:
+                # logging stats
                 accuracy[1].append(1 if goal_reached else 0)
-
                 self.log_result(episode_reward, accuracy)
+
+                # resetting variables
                 episode_reward = 0
                 goal_reached = False
                 accuracy = [[], []]
 
+                # updating normalizer values
                 self.high_state_normalizer.update(new_states)
                 self.high_state_normalizer.recompute_stats()
                 self.low_state_normalizer.update(new_states[:, LOW_STATE_IDX])
@@ -169,6 +178,7 @@ class Worker:
 
                 idx = 0
 
+                # generate extra transitions using HER
                 self.create_her_transition(episode_high_transitions, 1)
                 self.create_her_transition(episode_low_transitions, 0)
                 episode_high_transitions = []

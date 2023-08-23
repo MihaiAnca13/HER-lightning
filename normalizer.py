@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.multiprocessing as mp
 import numpy as np
 
+
 class Normalizer(nn.Module):
     def __init__(self, size, eps=1e-2, default_clip_range=np.inf):
         super().__init__()

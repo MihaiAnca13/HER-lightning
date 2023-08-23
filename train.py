@@ -34,6 +34,7 @@ class HER(pl.LightningModule):
     def __init__(self, hparams):
         super(HER, self).__init__()
 
+        # for logging with wandb
         if isinstance(hparams, dict):
             hparams = argparse.Namespace(**hparams)
 
@@ -55,6 +56,7 @@ class HER(pl.LightningModule):
         self.hl_state_shape = state_shape
         self.ll_state_shape = action_shape
 
+        # two models working in a hierarchical fashion: high level generating goal for low level. low level acts in environment based on provided goal
         self.high_model = TD3(params=self.hparams, obs_size=state_shape, goal_size=goal_shape, act_size=action_shape,
                               action_clips=(state_clip_low, state_clip_high), action_bounds=state_bounds,
                               action_offset=state_offset, lr=self.hparams.lr_high)
@@ -134,13 +136,15 @@ class HER(pl.LightningModule):
                     mean_ep_reward = torch.tensor(np.array(log_list[:, 0], dtype=np.float32)).mean()
                     low_accuracy = torch.tensor(np.concatenate(log_list[:, 1]).flatten()).float().mean()
                     high_accuracy = torch.tensor(np.concatenate(log_list[:, 2]).flatten()).float().mean()
+                    # logging handled by pytorch lightning
                     self.log_dict({'mean_ep_reward': mean_ep_reward}, prog_bar=True, on_step=True)
                     self.log_dict({'low_accuracy': low_accuracy}, prog_bar=True, on_step=True)
                     self.log_dict({'high_accuracy': high_accuracy}, prog_bar=True, on_step=True)
                     self.shared_log_list[:] = []
 
-        states_v, actions_v, next_states_v, rewards_v, dones_mask, goals_v = batch[0]
+        states_v, actions_v, next_states_v, rewards_v, dones_mask, goals_v = batch[0]  # [0] is because of how the batch is collated
 
+        # based on the type of data provided in the batch, the right network and normalizers are selected
         if states_v.shape[1] == self.hl_state_shape and optimizer_idx in [0, 1]:
             net = self.high_model
             state_normalizer = self.high_state_normalizer
